@@ -42,22 +42,21 @@ class TimeSlot(models.Model):
 
 
 class Booking(models.Model, ChoicesMixin):
-    """
-    Model representing a booking for a move.
-    """
-    
     STATUS_CHOICES = [
         ('confirmed', 'Confirmed'),
         ('in_progress', 'In Progress'),
         ('completed', 'Completed'),
         ('cancelled', 'Cancelled'),
     ]
-    
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='bookings')
     move = models.ForeignKey(Move, on_delete=models.CASCADE, related_name='bookings')
-    time_slot = models.ForeignKey(TimeSlot, on_delete=models.CASCADE, related_name='bookings')
-    
+
+    # Instead of FK, store actual times
+    start_time = models.TimeField()
+    end_time = models.TimeField()
+
     # Booking details
     date = models.DateField()
     phone_number = models.CharField(
@@ -71,36 +70,33 @@ class Booking(models.Model, ChoicesMixin):
     )
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='confirmed')
     confirmation_number = models.CharField(max_length=10, unique=True, blank=True)
-    
+
     # Timestamps
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    
+
     class Meta:
         db_table = 'bookings'
         verbose_name = 'Booking'
         verbose_name_plural = 'Bookings'
         ordering = ['-created_at']
-        unique_together = ['time_slot', 'date']  # Prevent double booking
-    
+        unique_together = ['date', 'start_time', 'end_time']  # prevent double booking
+
     def __str__(self):
-        return f"Booking {self.confirmation_number} - {self.date} {self.time_slot}"
-    
+        return f"Booking {self.confirmation_number} - {self.date} {self.start_time}-{self.end_time}"
+
     def save(self, *args, **kwargs):
-        """Generate confirmation number if not provided."""
         if not self.confirmation_number:
             self.confirmation_number = self.generate_confirmation_number()
         super().save(*args, **kwargs)
-    
+
     def generate_confirmation_number(self):
-        """Generate a unique confirmation number."""
         while True:
-            # Generate format: BK + 6 random digits/letters
             confirmation = 'BK' + ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
             if not Booking.objects.filter(confirmation_number=confirmation).exists():
                 return confirmation
     
     @property
     def time_slot_display(self):
-        """Get formatted time slot display."""
-        return f"{self.time_slot.start_time.strftime('%H:%M')} - {self.time_slot.end_time.strftime('%H:%M')}"
+        """Return formatted time slot string."""
+        return f"{self.start_time.strftime('%H:%M')} - {self.end_time.strftime('%H:%M')}"

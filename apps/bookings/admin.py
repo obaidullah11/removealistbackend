@@ -30,7 +30,7 @@ class BookingAdmin(admin.ModelAdmin):
     Admin configuration for Booking model.
     """
     list_display = [
-        'confirmation_number', 'user', 'date', 'time_slot',
+        'confirmation_number', 'user', 'date',
         'status', 'phone_number', 'created_at'
     ]
     list_filter = ['status', 'date', 'created_at']
@@ -46,7 +46,7 @@ class BookingAdmin(admin.ModelAdmin):
             'fields': ('confirmation_number', 'user', 'move', 'status')
         }),
         ('Schedule Details', {
-            'fields': ('date', 'time_slot', 'phone_number')
+            'fields': ('date','phone_number')
         }),
         ('Timestamps', {
             'fields': ('created_at', 'updated_at'),
@@ -56,4 +56,4 @@ class BookingAdmin(admin.ModelAdmin):
     
     def get_queryset(self, request):
         """Optimize queryset with select_related."""
-        return super().get_queryset(request).select_related('user', 'move', 'time_slot')
+        return super().get_queryset(request).select_related('user', 'move')
